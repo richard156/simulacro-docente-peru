@@ -4,6 +4,7 @@ import { AdminLayout } from '@/components/admin/AdminLayout'
 import { Login } from '@/pages/Login'
 import { Register } from '@/pages/Register'
 import { ForgotPassword } from '@/pages/ForgotPassword'
+import { ResetPassword } from '@/pages/ResetPassword'
 import { Dashboard } from '@/pages/Dashboard'
 import { ExamCatalog } from '@/pages/ExamCatalog'
 import { ExamSimulation } from '@/pages/ExamSimulation'
@@ -92,6 +93,9 @@ export function App() {
             </PublicRoute>
           }
         />
+
+        {/* Ruta de restablecimiento de contraseña (accesible sin autenticación) */}
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* Ruta raíz redirige según autenticación */}
         <Route path="/" element={<RootRedirect />} />

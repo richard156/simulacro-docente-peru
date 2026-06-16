@@ -12,7 +12,7 @@ import type { Exam } from '@/types'
 
 export function AdminDashboard() {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  useAuth()
   const [exams, setExams] = useState<Exam[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')

@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Loader2, ArrowLeft, Save, Eye, EyeOff } from 'lucide-react'
 import { toast } from 'sonner'
 import { fetchExamCasesAdmin, updateCase, fetchAllExams } from '@/lib/adminService'
-import type { Exam, ExamCase } from '@/types'
+import type { Exam } from '@/types'
 
 export function AdminCaseEdit() {
   const navigate = useNavigate()
@@ -44,7 +44,7 @@ export function AdminCaseEdit() {
         if (foundCase) {
           setFormData({
             case_number: foundCase.case_number,
-          title: foundCase.title ?? '',
+            title: foundCase.title ?? '',
             subject_area: foundCase.subject_area,
             context_text: foundCase.context_text,
             key_points: foundCase.key_points
@@ -109,7 +109,7 @@ export function AdminCaseEdit() {
 
       await updateCase(caseId, {
         case_number: formData.case_number,
-        title: formData.title.trim() || null,
+        title: formData.title.trim() || undefined,
         subject_area: formData.subject_area.trim(),
         context_text: formData.context_text.trim(),
         key_points: keyPoints,

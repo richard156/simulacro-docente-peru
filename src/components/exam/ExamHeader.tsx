@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useExamStore } from '@/stores/examStore'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { GraduationCap, Clock, Flag, ChevronLeft, Timer, TimerReset } from 'lucide-react'
+import { GraduationCap, Flag, ChevronLeft, Timer, TimerReset } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 interface ExamHeaderProps {

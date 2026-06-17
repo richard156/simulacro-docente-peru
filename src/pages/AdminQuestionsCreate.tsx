@@ -6,9 +6,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Loader2, ArrowLeft, Save, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { createQuestion, fetchCaseQuestionsAdmin } from '@/lib/adminService'
+import { createQuestion, updateQuestion as updateQuestionService, fetchCaseQuestionsAdmin } from '@/lib/adminService'
+import type { CaseQuestion } from '@/types'
 
 interface QuestionForm {
+  id?: string // ID de la pregunta existente (para edición)
   question_number: number
   statement: string
   options: { id: string; label: string; text: string }[]
@@ -32,9 +34,11 @@ export function AdminQuestionsCreate() {
         setExistingCount(existing.length)
 
         // Si hay preguntas existentes, cargarlas
+        // Nota: fetchCaseQuestionsAdmin ya normaliza las opciones a QuestionOption[]
         if (existing.length > 0) {
           setQuestions(
             existing.map((q) => ({
+              id: q.id,
               question_number: q.question_number,
               statement: q.statement,
               options: q.options as { id: string; label: string; text: string }[],
@@ -149,31 +153,54 @@ export function AdminQuestionsCreate() {
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
+    console.log('handleSubmit ejecutado!')
     e.preventDefault()
-    if (!validate()) return
+    console.log('Validando...')
+    if (!validate()) {
+      console.log('Validación falló')
+      return
+    }
+    console.log('Validación OK')
     if (!caseId) {
       toast.error('No se ha especificado un caso')
       return
     }
 
     setSaving(true)
+    console.log('Guardando preguntas...', { questions, caseId, examId })
     try {
       for (const question of questions) {
-        await createQuestion({
-          case_id: caseId,
-          question_number: question.question_number,
-          statement: question.statement.trim(),
-          options: question.options,
-          correct_answer: question.correct_answer,
-          explanation: question.explanation.trim(),
-        })
+        console.log('Procesando pregunta:', question)
+
+        if (question.id) {
+          // Actualizar pregunta existente
+          console.log('Actualizando pregunta existente:', question.id)
+          await updateQuestionService(question.id, {
+            question_number: question.question_number,
+            statement: question.statement.trim(),
+            options: question.options,
+            correct_answer: question.correct_answer,
+            explanation: question.explanation.trim(),
+          })
+        } else {
+          // Crear nueva pregunta
+          console.log('Creando nueva pregunta')
+          await createQuestion({
+            case_id: caseId,
+            question_number: question.question_number,
+            statement: question.statement.trim(),
+            options: question.options,
+            correct_answer: question.correct_answer,
+            explanation: question.explanation.trim(),
+          })
+        }
       }
 
       toast.success(`${questions.length} pregunta(s) guardada(s) correctamente`)
       navigate(`/admin/exam/${examId}/cases`)
     } catch (err) {
-      toast.error('Error al guardar las preguntas')
-      console.error(err)
+      console.error('Error detallado al guardar:', err)
+      toast.error(`Error: ${err instanceof Error ? err.message : 'Error al guardar las preguntas'}`)
     } finally {
       setSaving(false)
     }

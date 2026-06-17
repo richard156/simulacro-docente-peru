@@ -1,12 +1,12 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Loader2, ArrowLeft, Save } from 'lucide-react'
+import { Loader2, ArrowLeft, Save, Globe, EyeOff } from 'lucide-react'
 import { toast } from 'sonner'
-import { createExam } from '@/lib/adminService'
+import { createExam, updateExam, fetchExamById } from '@/lib/adminService'
 
 const EXAM_TYPES = [
   { value: 'nombramiento', label: 'Nombramiento' },
@@ -16,6 +16,9 @@ const EXAM_TYPES = [
 
 export function AdminExamCreate() {
   const navigate = useNavigate()
+  const { examId } = useParams()
+  const isEditing = !!examId
+  const [loading, setLoading] = useState(isEditing)
   const [saving, setSaving] = useState(false)
   const [formData, setFormData] = useState({
     title: '',
@@ -24,8 +27,40 @@ export function AdminExamCreate() {
     specialty: '',
     duration_minutes: 120,
     passing_score: 60,
+    is_published: false,
+    is_active: true,
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  // Cargar datos existentes si estamos editando
+  useEffect(() => {
+    if (!examId) return
+
+    const loadExam = async () => {
+      try {
+        const exam = await fetchExamById(examId)
+        if (exam) {
+          setFormData({
+            title: exam.title || '',
+            description: exam.description || '',
+            type: exam.type || 'nombramiento',
+            specialty: exam.specialty || '',
+            duration_minutes: exam.duration_minutes || 120,
+            passing_score: exam.passing_score || 60,
+            is_published: exam.is_published ?? false,
+            is_active: exam.is_active ?? true,
+          })
+        }
+      } catch (err) {
+        toast.error('Error al cargar el examen')
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadExam()
+  }, [examId])
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {}
@@ -51,30 +86,49 @@ export function AdminExamCreate() {
 
     setSaving(true)
     try {
-      const exam = await createExam({
-        title: formData.title.trim(),
-        description: formData.description.trim() || null,
-        type: formData.type,
-        specialty: formData.specialty.trim() || null,
-        duration_minutes: formData.duration_minutes,
-        passing_score: formData.passing_score,
-      })
-
-      if (exam) {
-        toast.success('Examen creado correctamente')
-        navigate(`/admin/exam/${exam.id}/cases`)
+      if (isEditing && examId) {
+        // Actualizar examen existente
+        await updateExam(examId, {
+          title: formData.title.trim(),
+          description: formData.description.trim() || '',
+          type: formData.type,
+          specialty: formData.specialty.trim() || '',
+          duration_minutes: formData.duration_minutes,
+          passing_score: formData.passing_score,
+          is_published: formData.is_published,
+          is_active: formData.is_active,
+        })
+        toast.success('Examen actualizado correctamente')
+        navigate('/admin')
       } else {
-        toast.error('No se pudo crear el examen')
+        // Crear nuevo examen
+        const exam = await createExam({
+          title: formData.title.trim(),
+          description: formData.description.trim() || '',
+          type: formData.type,
+          specialty: formData.specialty.trim() || '',
+          duration_minutes: formData.duration_minutes,
+          passing_score: formData.passing_score,
+          is_published: false,
+          is_active: true,
+        })
+
+        if (exam) {
+          toast.success('Examen creado correctamente')
+          navigate(`/admin/exam/${exam.id}/cases`)
+        } else {
+          toast.error('No se pudo crear el examen')
+        }
       }
     } catch (err) {
-      toast.error('Error al crear el examen')
+      toast.error(isEditing ? 'Error al actualizar el examen' : 'Error al crear el examen')
       console.error(err)
     } finally {
       setSaving(false)
     }
   }
 
-  const handleChange = (field: string, value: string | number) => {
+  const handleChange = (field: string, value: string | number | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }))
     // Limpiar error del campo
     if (errors[field]) {
@@ -84,6 +138,17 @@ export function AdminExamCreate() {
         return newErrors
       })
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+          <p className="text-gray-500 text-sm">Cargando examen...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -98,9 +163,13 @@ export function AdminExamCreate() {
           Volver
         </Button>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Crear Nuevo Examen</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {isEditing ? 'Editar Examen' : 'Crear Nuevo Examen'}
+          </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Completa los datos para crear un nuevo examen de simulacro.
+            {isEditing
+              ? 'Modifica los datos del examen y gestiona su estado de publicación.'
+              : 'Completa los datos para crear un nuevo examen de simulacro.'}
           </p>
         </div>
       </div>
@@ -215,6 +284,87 @@ export function AdminExamCreate() {
           </CardContent>
         </Card>
 
+        {isEditing && (
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle className="text-lg">Estado del Examen</CardTitle>
+              <CardDescription>
+                Controla la visibilidad y disponibilidad del examen.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Publicado / Borrador */}
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  {formData.is_published ? (
+                    <Globe className="h-5 w-5 text-green-600" />
+                  ) : (
+                    <EyeOff className="h-5 w-5 text-gray-400" />
+                  )}
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      {formData.is_published ? 'Publicado' : 'Borrador'}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {formData.is_published
+                        ? 'El examen es visible para los usuarios en /exams'
+                        : 'Solo visible en el panel de administración'}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant={formData.is_published ? 'outline' : 'default'}
+                  size="sm"
+                  onClick={() =>
+                    handleChange('is_published', !formData.is_published)
+                  }
+                >
+                  {formData.is_published ? 'Despublicar' : 'Publicar'}
+                </Button>
+              </div>
+
+              {/* Activo / Inactivo */}
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">
+                    {formData.is_active ? 'Activo' : 'Inactivo'}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {formData.is_active
+                      ? 'Los usuarios pueden rendir el examen'
+                      : 'El examen está deshabilitado temporalmente'}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant={formData.is_active ? 'outline' : 'default'}
+                  size="sm"
+                  onClick={() =>
+                    handleChange('is_active', !formData.is_active)
+                  }
+                >
+                  {formData.is_active ? 'Desactivar' : 'Activar'}
+                </Button>
+              </div>
+
+              {/* Enlace a documentos */}
+              <div className="pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(`/admin/pdf/upload?examId=${examId}`)}
+                  className="gap-2"
+                >
+                  <Globe className="h-4 w-4" />
+                  Ver Documentos
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="flex justify-end gap-3 mt-6">
           <Button
             type="button"
@@ -236,7 +386,7 @@ export function AdminExamCreate() {
             ) : (
               <>
                 <Save className="h-4 w-4" />
-                Crear Examen
+                {isEditing ? 'Guardar Cambios' : 'Crear Examen'}
               </>
             )}
           </Button>

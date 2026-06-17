@@ -37,14 +37,20 @@ export async function fetchExamById(examId: string): Promise<Exam | null> {
 export async function createExam(exam: {
   title: string
   description: string
+  type: 'nombramiento' | 'ascenso' | 'desempeno'
   specialty: string
-  time_limit_minutes: number
-  pass_percentage: number
-  is_published: boolean
+  duration_minutes: number
+  passing_score: number
+  is_published?: boolean
+  is_active?: boolean
 }): Promise<Exam> {
   const { data, error } = await supabase
     .from('exams')
-    .insert([exam])
+    .insert([{
+      ...exam,
+      is_published: exam.is_published ?? false,
+      is_active: exam.is_active ?? true,
+    }])
     .select()
     .single()
 
@@ -61,10 +67,12 @@ export async function updateExam(
   updates: Partial<{
     title: string
     description: string
+    type: 'nombramiento' | 'ascenso' | 'desempeno'
     specialty: string
-    time_limit_minutes: number
-    pass_percentage: number
+    duration_minutes: number
+    passing_score: number
     is_published: boolean
+    is_active: boolean
   }>
 ): Promise<Exam> {
   const { data, error } = await supabase
@@ -172,6 +180,39 @@ export async function deleteCase(caseId: string): Promise<void> {
 // PREGUNTAS
 // ============================================
 
+/**
+ * Normaliza las opciones de una pregunta: pueden venir como string[] o como QuestionOption[]
+ * desde la BD. Las convierte siempre a QuestionOption[].
+ */
+function normalizeOptions(rawOptions: unknown): { id: string; label: string; text: string }[] {
+  const labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
+
+  if (Array.isArray(rawOptions)) {
+    if (rawOptions.length > 0 && typeof rawOptions[0] === 'string') {
+      // Caso: string[] - solo textos
+      return (rawOptions as string[]).map((text, idx) => ({
+        id: labels[idx]?.toLowerCase() || String.fromCharCode(97 + idx),
+        label: labels[idx] || String.fromCharCode(65 + idx),
+        text: text || '',
+      }))
+    } else {
+      // Caso: QuestionOption[] - objetos completos
+      return (rawOptions as { id?: string; label?: string; text?: string }[]).map((opt, idx) => ({
+        id: opt.id || labels[idx]?.toLowerCase() || String.fromCharCode(97 + idx),
+        label: opt.label || labels[idx] || String.fromCharCode(65 + idx),
+        text: opt.text || '',
+      }))
+    }
+  }
+
+  // Fallback: opciones vacías
+  return labels.slice(0, 4).map((label, idx) => ({
+    id: label.toLowerCase(),
+    label,
+    text: '',
+  }))
+}
+
 export async function fetchCaseQuestionsAdmin(caseId: string): Promise<CaseQuestion[]> {
   const { data, error } = await supabase
     .from('case_questions')
@@ -184,7 +225,11 @@ export async function fetchCaseQuestionsAdmin(caseId: string): Promise<CaseQuest
     throw new Error('No se pudieron cargar las preguntas')
   }
 
-  return data || []
+  // Normalizar opciones para que siempre tengan el formato QuestionOption[]
+  return (data || []).map((q) => ({
+    ...q,
+    options: normalizeOptions(q.options),
+  }))
 }
 
 export async function createQuestion(question: {
@@ -195,9 +240,24 @@ export async function createQuestion(question: {
   correct_answer: string
   explanation: string
 }): Promise<CaseQuestion> {
+  // Convertir correct_answer (letra) a correct_option_index (número)
+  const correctOptionIndex = question.options.findIndex(
+    (o) => o.label === question.correct_answer
+  )
+
+  // Guardar solo los textos de las opciones en la BD (string[])
+  const dbOptions = question.options.map(o => o.text)
+
   const { data, error } = await supabase
     .from('case_questions')
-    .insert([question])
+    .insert([{
+      case_id: question.case_id,
+      question_number: question.question_number,
+      statement: question.statement,
+      options: dbOptions,
+      correct_option_index: correctOptionIndex >= 0 ? correctOptionIndex : 0,
+      explanation: question.explanation,
+    }])
     .select()
     .single()
 
@@ -219,9 +279,30 @@ export async function updateQuestion(
     explanation: string
   }>
 ): Promise<void> {
+  // Preparar datos para la BD
+  const dbUpdates: Record<string, unknown> = {}
+  
+  // Solo incluir campos que existen en la BD
+  if (updates.question_number !== undefined) dbUpdates.question_number = updates.question_number
+  if (updates.statement !== undefined) dbUpdates.statement = updates.statement
+  if (updates.explanation !== undefined) dbUpdates.explanation = updates.explanation
+  
+  // Guardar solo los textos de las opciones en la BD (string[])
+  if (updates.options !== undefined) {
+    dbUpdates.options = updates.options.map(o => o.text)
+  }
+  
+  // Convertir correct_answer (letra) a correct_option_index (número)
+  if (updates.correct_answer !== undefined && updates.options) {
+    const correctOptionIndex = updates.options.findIndex(
+      (o) => o.label === updates.correct_answer
+    )
+    dbUpdates.correct_option_index = correctOptionIndex >= 0 ? correctOptionIndex : 0
+  }
+
   const { error } = await supabase
     .from('case_questions')
-    .update(updates)
+    .update(dbUpdates)
     .eq('id', questionId)
 
   if (error) {

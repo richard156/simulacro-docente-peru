@@ -15,11 +15,11 @@ export async function fetchPublishedExams(): Promise<Exam[]> {
     return []
   }
 
+  // Obtener todos los exámenes y filtrar en memoria
+  // para evitar problemas con la sintaxis de .or() en Supabase
   const { data, error } = await supabase
     .from('exams')
     .select('*')
-    .eq('is_published', true)
-    .eq('is_active', true)
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -27,7 +27,12 @@ export async function fetchPublishedExams(): Promise<Exam[]> {
     throw new Error('No se pudieron cargar los exámenes')
   }
 
-  return data ?? []
+  // Filtrar: publicados (is_published = true o null) y activos (is_active = true o null)
+  return (data ?? []).filter(
+    (exam) =>
+      (exam.is_published === true || exam.is_published === null) &&
+      (exam.is_active === true || exam.is_active === null)
+  )
 }
 
 /**
@@ -66,7 +71,6 @@ export async function fetchExamCases(examId: string): Promise<ExamCase[]> {
     .from('exam_cases')
     .select('*')
     .eq('exam_id', examId)
-    .eq('is_published', true)
     .order('case_number', { ascending: true })
 
   if (error) {
@@ -74,7 +78,43 @@ export async function fetchExamCases(examId: string): Promise<ExamCase[]> {
     throw new Error('No se pudieron cargar los casos')
   }
 
-  return data ?? []
+  // Filtrar: publicados (is_published = true o null)
+  return (data ?? []).filter(
+    (c) => c.is_published === true || c.is_published === null
+  )
+}
+
+/**
+ * Normaliza las opciones de una pregunta: pueden venir como string[] o como QuestionOption[]
+ * desde la BD. Las convierte siempre a QuestionOption[].
+ */
+function normalizeOptions(rawOptions: unknown): { id: string; label: string; text: string }[] {
+  const labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
+
+  if (Array.isArray(rawOptions)) {
+    if (rawOptions.length > 0 && typeof rawOptions[0] === 'string') {
+      // Caso: string[] - solo textos
+      return (rawOptions as string[]).map((text, idx) => ({
+        id: labels[idx]?.toLowerCase() || String.fromCharCode(97 + idx),
+        label: labels[idx] || String.fromCharCode(65 + idx),
+        text: text || '',
+      }))
+    } else {
+      // Caso: QuestionOption[] - objetos completos
+      return (rawOptions as { id?: string; label?: string; text?: string }[]).map((opt, idx) => ({
+        id: opt.id || labels[idx]?.toLowerCase() || String.fromCharCode(97 + idx),
+        label: opt.label || labels[idx] || String.fromCharCode(65 + idx),
+        text: opt.text || '',
+      }))
+    }
+  }
+
+  // Fallback: opciones vacías
+  return labels.slice(0, 4).map((label, idx) => ({
+    id: label.toLowerCase(),
+    label,
+    text: '',
+  }))
 }
 
 /**
@@ -90,7 +130,6 @@ export async function fetchCaseQuestions(caseId: string): Promise<CaseQuestion[]
     .from('case_questions')
     .select('*')
     .eq('case_id', caseId)
-    .eq('is_published', true)
     .order('question_number', { ascending: true })
 
   if (error) {
@@ -98,7 +137,13 @@ export async function fetchCaseQuestions(caseId: string): Promise<CaseQuestion[]
     throw new Error('No se pudieron cargar las preguntas')
   }
 
-  return data ?? []
+  // Filtrar: publicadas (is_published = true o null) y normalizar opciones
+  return (data ?? [])
+    .filter((q) => q.is_published === true || q.is_published === null)
+    .map((q) => ({
+      ...q,
+      options: normalizeOptions(q.options),
+    }))
 }
 
 /**

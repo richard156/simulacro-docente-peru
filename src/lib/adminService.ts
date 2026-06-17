@@ -187,17 +187,27 @@ export async function deleteCase(caseId: string): Promise<void> {
 function normalizeOptions(rawOptions: unknown): { id: string; label: string; text: string }[] {
   const labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
 
-  if (Array.isArray(rawOptions)) {
-    if (rawOptions.length > 0 && typeof rawOptions[0] === 'string') {
+  // Intentar parsear si es un string JSON
+  let parsed = rawOptions
+  if (typeof rawOptions === 'string') {
+    try {
+      parsed = JSON.parse(rawOptions)
+    } catch {
+      console.warn('⚠️ normalizeOptions: no se pudo parsear string JSON:', rawOptions)
+    }
+  }
+
+  if (Array.isArray(parsed)) {
+    if (parsed.length > 0 && typeof parsed[0] === 'string') {
       // Caso: string[] - solo textos
-      return (rawOptions as string[]).map((text, idx) => ({
+      return (parsed as string[]).map((text, idx) => ({
         id: labels[idx]?.toLowerCase() || String.fromCharCode(97 + idx),
         label: labels[idx] || String.fromCharCode(65 + idx),
         text: text || '',
       }))
     } else {
       // Caso: QuestionOption[] - objetos completos
-      return (rawOptions as { id?: string; label?: string; text?: string }[]).map((opt, idx) => ({
+      return (parsed as { id?: string; label?: string; text?: string }[]).map((opt, idx) => ({
         id: opt.id || labels[idx]?.toLowerCase() || String.fromCharCode(97 + idx),
         label: opt.label || labels[idx] || String.fromCharCode(65 + idx),
         text: opt.text || '',
@@ -205,6 +215,7 @@ function normalizeOptions(rawOptions: unknown): { id: string; label: string; tex
     }
   }
 
+  console.warn('⚠️ normalizeOptions: formato no reconocido, usando fallback:', rawOptions)
   // Fallback: opciones vacías
   return labels.slice(0, 4).map((label, idx) => ({
     id: label.toLowerCase(),
@@ -212,6 +223,7 @@ function normalizeOptions(rawOptions: unknown): { id: string; label: string; tex
     text: '',
   }))
 }
+
 
 export async function fetchCaseQuestionsAdmin(caseId: string): Promise<CaseQuestion[]> {
   const { data, error } = await supabase

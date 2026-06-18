@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { HTMLContent } from '@/components/ui/html-content'
 import { Loader2, ArrowLeft, Plus, Trash2, FileQuestion, BookOpen, Pencil } from 'lucide-react'
 import { toast } from 'sonner'
 import { fetchAllExams, fetchExamCasesAdmin, deleteCase } from '@/lib/adminService'
@@ -149,9 +150,10 @@ export function AdminExamCases() {
                         {caseItem.title}
                       </h3>
                     )}
-                    <p className="text-sm text-gray-500 line-clamp-2">
-                      {caseItem.context_text}
-                    </p>
+                    <HTMLContent
+                      html={caseItem.context_text}
+                      className="text-sm text-gray-500 line-clamp-2"
+                    />
                   </div>
                   <div className="flex items-center gap-2 ml-4">
                     <Button

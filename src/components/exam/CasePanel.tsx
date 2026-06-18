@@ -1,6 +1,7 @@
 import { useExamStore } from '@/stores/examStore'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
+import { HTMLContent } from '@/components/ui/html-content'
 import { BookOpen, FileText, Lightbulb, Target } from 'lucide-react'
 
 export function CasePanel() {
@@ -58,9 +59,10 @@ export function CasePanel() {
                 Contexto
               </h3>
             </div>
-            <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
-              {currentCase.context_text}
-            </div>
+            <HTMLContent
+              html={currentCase.context_text}
+              className="text-sm text-gray-700 leading-relaxed"
+            />
             {currentCase.word_count && (
               <p className="text-xs text-gray-400 mt-2">
                 {currentCase.word_count} palabras
@@ -77,9 +79,10 @@ export function CasePanel() {
                   Enfoque Pedagógico
                 </h3>
               </div>
-              <p className="text-sm text-gray-700 leading-relaxed">
-                {currentCase.pedagogical_focus}
-              </p>
+              <HTMLContent
+                html={currentCase.pedagogical_focus}
+                className="text-sm text-gray-700 leading-relaxed"
+              />
             </div>
           )}
 

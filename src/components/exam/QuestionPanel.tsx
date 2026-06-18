@@ -1,6 +1,7 @@
 import { useExamStore } from '@/stores/examStore'
 import { Button } from '@/components/ui/button'
 import { FeedbackCard } from '@/components/exam/FeedbackCard'
+import { HTMLContent } from '@/components/ui/html-content'
 import { CheckCircle2, Circle, ChevronLeft, ChevronRight, Send } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -83,9 +84,10 @@ export function QuestionPanel() {
                 </span>
               )}
             </div>
-            <p className="text-base sm:text-lg font-medium text-gray-900 leading-relaxed">
-              {currentQuestion.statement}
-            </p>
+            <HTMLContent
+              html={currentQuestion.statement}
+              className="text-base sm:text-lg font-medium text-gray-900 leading-relaxed"
+            />
           </div>
 
           {/* Opciones de respuesta */}
@@ -124,15 +126,15 @@ export function QuestionPanel() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className={cn(
+                      <div className={cn(
                         'text-sm sm:text-base',
                         isCorrectOption ? 'text-green-800 font-medium' :
                         isWrongSelection ? 'text-red-800 font-medium' :
                         'text-gray-700'
                       )}>
                         <span className="font-semibold mr-1">{option.label})</span>
-                        {option.text}
-                      </p>
+                        <HTMLContent html={option.text} as="span" className="inline" />
+                      </div>
                     </div>
                   </div>
                 </button>

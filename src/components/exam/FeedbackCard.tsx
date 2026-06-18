@@ -1,6 +1,7 @@
 import { useExamStore } from '@/stores/examStore'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
+import { HTMLContent } from '@/components/ui/html-content'
 import { CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -47,13 +48,15 @@ export function FeedbackCard() {
 
           {!isCorrect && selectedOption && correctOption && (
             <p className="mt-1 text-xs text-red-700">
-              Tu respuesta: <span className="font-medium">{selectedOption.label}) {selectedOption.text}</span>
+              Tu respuesta: <span className="font-medium">{selectedOption.label}) </span>
+              <HTMLContent html={selectedOption.text} as="span" className="text-xs text-red-700 font-medium" />
             </p>
           )}
 
           {!isCorrect && correctOption && (
             <p className="mt-0.5 text-xs text-green-700">
-              Respuesta correcta: <span className="font-medium">{correctOption.label}) {correctOption.text}</span>
+              Respuesta correcta: <span className="font-medium">{correctOption.label}) </span>
+              <HTMLContent html={correctOption.text} as="span" className="text-xs text-green-700 font-medium" />
             </p>
           )}
         </div>
@@ -63,7 +66,7 @@ export function FeedbackCard() {
       <div className="mt-3 pt-3 border-t border-dashed border-gray-200">
         <div className="flex items-start gap-2">
           <AlertCircle className="h-4 w-4 text-gray-500 mt-0.5 flex-shrink-0" />
-          <p className="text-xs text-gray-700 leading-relaxed">{explanation}</p>
+          <HTMLContent html={explanation} className="text-xs text-gray-700 leading-relaxed" />
         </div>
       </div>
 

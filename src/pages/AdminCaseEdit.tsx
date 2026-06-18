@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Loader2, ArrowLeft, Save, Eye, EyeOff } from 'lucide-react'
+import { Loader2, ArrowLeft, Save } from 'lucide-react'
+import { RichTextEditor } from '@/components/ui/rich-text-editor'
 import { toast } from 'sonner'
 import { fetchExamCasesAdmin, updateCase, fetchAllExams } from '@/lib/adminService'
 import type { Exam } from '@/types'
@@ -15,7 +16,6 @@ export function AdminCaseEdit() {
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
   const [exam, setExam] = useState<Exam | null>(null)
-  const [showPreview, setShowPreview] = useState(false)
   const [formData, setFormData] = useState({
     case_number: 1,
     title: '',
@@ -228,55 +228,19 @@ export function AdminCaseEdit() {
 
             {/* Texto del caso */}
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="context_text">
-                  Texto del caso <span className="text-red-500">*</span>
-                </Label>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowPreview(!showPreview)}
-                  className="gap-1.5 text-xs"
-                >
-                  {showPreview ? (
-                    <>
-                      <EyeOff className="h-3.5 w-3.5" />
-                      Editar
-                    </>
-                  ) : (
-                    <>
-                      <Eye className="h-3.5 w-3.5" />
-                      Vista previa
-                    </>
-                  )}
-                </Button>
-              </div>
-
-              {showPreview ? (
-                <div className="min-h-[300px] p-4 rounded-md border bg-gray-50 text-sm whitespace-pre-wrap">
-                  {formData.context_text || (
-                    <span className="text-gray-400">Sin contenido para previsualizar</span>
-                  )}
-                </div>
-              ) : (
-                <textarea
-                  id="context_text"
-                  placeholder="Escribe aquí el texto del caso pedagógico..."
-                  value={formData.context_text}
-                  onChange={(e) => handleChange('context_text', e.target.value)}
-                  rows={15}
-                  className={`flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${
-                    errors.context_text ? 'border-red-500' : ''
-                  }`}
-                />
-              )}
+              <Label htmlFor="context_text">
+                Texto del caso <span className="text-red-500">*</span>
+              </Label>
+              <RichTextEditor
+                value={formData.context_text}
+                onChange={(html) => handleChange('context_text', html)}
+                placeholder="Escribe aquí el texto del caso pedagógico..."
+                minHeight="300px"
+                error={errors.context_text}
+              />
               {errors.context_text && (
                 <p className="text-xs text-red-500">{errors.context_text}</p>
               )}
-              <p className="text-xs text-gray-400">
-                {formData.context_text.length} caracteres
-              </p>
             </div>
 
             {/* Puntos clave */}

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Loader2, ArrowLeft, Save, Plus, Trash2 } from 'lucide-react'
+import { RichTextEditor } from '@/components/ui/rich-text-editor'
 import { toast } from 'sonner'
 import { createQuestion, updateQuestion as updateQuestionService, fetchCaseQuestionsAdmin } from '@/lib/adminService'
 import type { CaseQuestion } from '@/types'
@@ -276,15 +277,11 @@ export function AdminQuestionsCreate() {
               {/* Enunciado */}
               <div className="space-y-2">
                 <Label htmlFor={`statement-${index}`}>Enunciado</Label>
-                <textarea
-                  id={`statement-${index}`}
-                  placeholder="Escribe el enunciado de la pregunta..."
+                <RichTextEditor
                   value={question.statement}
-                  onChange={(e) =>
-                    updateQuestion(index, 'statement', e.target.value)
-                  }
-                  rows={3}
-                  className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  onChange={(html) => updateQuestion(index, 'statement', html)}
+                  placeholder="Escribe el enunciado de la pregunta..."
+                  minHeight="120px"
                 />
               </div>
 

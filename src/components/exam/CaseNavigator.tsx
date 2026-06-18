@@ -127,12 +127,7 @@ export function CaseNavigator({ isOpen, onClose }: CaseNavigatorProps) {
                               {qIndex + 1}
                             </span>
 
-                            {/* Tipo de pregunta */}
-                            <span className="truncate">
-                              {question.question_type === 'open_ended' ? 'Abierta' :
-                               question.question_type === 'multiple_choice' ? 'Opción múltiple' :
-                               question.question_type ?? 'Pregunta'}
-                            </span>
+                            {/* Tipo de pregunta - oculto por ahora */}
                           </button>
                         )
                       })}
